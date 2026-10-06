@@ -2,7 +2,7 @@ import { useEffect, useMemo, useState } from "react";
 import { Link, useSearchParams } from "react-router-dom";
 
 import CourseCard from "../components/CourseCard";
-import { LEVELS, getCourses } from "../services/api";
+import { LEVELS, getCourses, isAdmin, isPublished } from "../services/api";
 
 const SORT_OPTIONS = [
   { value: "rating", label: "Top rated" },
@@ -28,7 +28,10 @@ function Courses() {
 
     getCourses()
       .then((data) => {
-        if (active) setCourses(Array.isArray(data) ? data : []);
+        if (!active) return;
+        const list = Array.isArray(data) ? data : [];
+        // normal users only see published courses
+        setCourses(isAdmin() ? list : list.filter(isPublished));
       })
       .catch((err) => {
         console.error("Error loading courses:", err);
@@ -102,9 +105,11 @@ function Courses() {
           <p>Learn practical skills from expert instructors.</p>
         </div>
 
-        <Link to="/add-course" className="primary-btn">
-          + Add course
-        </Link>
+        {isAdmin() && (
+          <Link to="/add-course" className="primary-btn">
+            + Add course
+          </Link>
+        )}
       </section>
 
       <section className="course-filters">

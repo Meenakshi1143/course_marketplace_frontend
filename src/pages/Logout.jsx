@@ -1,16 +1,19 @@
 import { useEffect } from "react";
 import { useNavigate } from "react-router-dom";
+import { useDispatch } from "react-redux";
+
+import { resetEnrollments } from "../features/enrollmentSlice";
+import { clearSession } from "../services/api";
 
 function Logout() {
   const navigate = useNavigate();
+  const dispatch = useDispatch();
 
   useEffect(() => {
-    localStorage.removeItem("isLoggedIn");
-    localStorage.removeItem("userEmail");
-    localStorage.removeItem("userName");
-
+    clearSession();
+    dispatch(resetEnrollments());
     navigate("/login", { replace: true });
-  }, [navigate]);
+  }, [navigate, dispatch]);
 
   return null;
 }

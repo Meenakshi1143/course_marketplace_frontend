@@ -1,8 +1,8 @@
 import { configureStore } from "@reduxjs/toolkit";
-import favoriteReducer from "../features/favoriteSlice";
+import enrollmentReducer from "../features/enrollmentSlice";
 
 export const store = configureStore({
     reducer: {
-        favorites: favoriteReducer,
+        enrollments: enrollmentReducer,
     },
 });

@@ -1,23 +1,31 @@
+import { useState } from "react";
 import { Link } from "react-router-dom";
 import { useDispatch, useSelector } from "react-redux";
 
-import { addFavorite, removeFavorite } from "../features/favoriteSlice";
-import { FALLBACK_IMAGE, formatPrice, imageUrl } from "../services/api";
+import { enrollCourse } from "../features/enrollmentSlice";
+import { FALLBACK_IMAGE, formatPrice, imageUrl, isAdmin } from "../services/api";
 
 function CourseCard({ course }) {
   const dispatch = useDispatch();
 
-  const favorites = useSelector((state) => state.favorites?.items || []);
+  const enrolledIds = useSelector((state) => state.enrollments.ids);
 
-  const isFavorite = favorites.some(
-    (item) => String(item.id) === String(course.id)
-  );
+  const [enrolling, setEnrolling] = useState(false);
+  const [error, setError] = useState("");
 
-  const handleFavorite = () => {
-    if (isFavorite) {
-      dispatch(removeFavorite(course.id));
-    } else {
-      dispatch(addFavorite(course));
+  const admin = isAdmin();
+  const enrolled = enrolledIds.includes(String(course.id));
+
+  const handleEnroll = async () => {
+    try {
+      setError("");
+      setEnrolling(true);
+      await dispatch(enrollCourse(course)).unwrap();
+    } catch (err) {
+      console.error("Error enrolling:", err);
+      setError("Could not enroll. Please try again.");
+    } finally {
+      setEnrolling(false);
     }
   };
 
@@ -39,21 +47,13 @@ function CourseCard({ course }) {
           {course.category || "General"}
         </span>
 
-        <button
-          type="button"
-          className={`favorite-btn ${isFavorite ? "favorite-active" : ""}`}
-          onClick={handleFavorite}
-          aria-label={isFavorite ? "Remove from favorites" : "Add to favorites"}
-          title={isFavorite ? "Remove from favorites" : "Add to favorites"}
-        >
-          {isFavorite ? "♥" : "♡"}
-        </button>
+        {course.status === "draft" && <span className="draft-tag">Draft</span>}
       </div>
 
       <div className="course-content">
         <div className="course-meta">
           <span className="course-level">{course.level || "Beginner"}</span>
-          <span className="course-rating">★ {course.rating ?? "New"}</span>
+          <span className="course-rating">★ {course.rating != null ? course.rating : "New"}</span>
         </div>
 
         <h3 className="course-title">{course.title}</h3>
@@ -68,6 +68,24 @@ function CourseCard({ course }) {
             <span>📖 {course.lessons || course.lectures} lessons</span>
           )}
         </div>
+
+        {!admin &&
+          (enrolled ? (
+            <Link to={`/courses/${course.id}`} className="card-enrolled">
+              ✓ Enrolled · Continue
+            </Link>
+          ) : (
+            <button
+              type="button"
+              className="card-enroll-btn"
+              onClick={handleEnroll}
+              disabled={enrolling}
+            >
+              {enrolling ? "Enrolling..." : "Enroll now"}
+            </button>
+          ))}
+
+        {error && <p className="card-error">{error}</p>}
 
         <div className="course-bottom">
           <span className="course-price">{formatPrice(course.price)}</span>

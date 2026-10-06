@@ -1,6 +1,7 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { Link, NavLink, useLocation } from "react-router-dom";
-import { useSelector } from "react-redux";
+import { useDispatch, useSelector } from "react-redux";
+import { fetchEnrollments } from "../features/enrollmentSlice";
 import { SITE_NAME } from "../services/api";
 
 function Navbar() {
@@ -10,11 +11,19 @@ function Navbar() {
   const [open, setOpen] = useState(false);
 
   const isLoggedIn = localStorage.getItem("isLoggedIn") === "true";
+  const isAdminUser = localStorage.getItem("userRole") === "admin";
   const userName = localStorage.getItem("userName") || "";
 
-  const favoriteCount = useSelector(
-    (state) => state.favorites?.items?.length || 0
-  );
+  const dispatch = useDispatch();
+  const enrolledCount = useSelector((state) => state.enrollments.ids.length);
+  const loaded = useSelector((state) => state.enrollments.loaded);
+
+  // load the user's enrollments once after login / page refresh
+  useEffect(() => {
+    if (isLoggedIn && !isAdminUser && !loaded) {
+      dispatch(fetchEnrollments());
+    }
+  }, [isLoggedIn, isAdminUser, loaded, dispatch]);
 
   const closeMenu = () => setOpen(false);
 
@@ -56,20 +65,39 @@ function Navbar() {
                 Courses
               </NavLink>
 
-              <NavLink to="/add-course" className={linkClass} onClick={closeMenu}>
-                Add Course
-              </NavLink>
-
-              <NavLink to="/favorites" className={linkClass} onClick={closeMenu}>
-                Favorites
-                {favoriteCount > 0 && (
-                  <span className="nav-badge">{favoriteCount}</span>
-                )}
-              </NavLink>
-
-              {userName && (
-                <span className="nav-user">Hi, {userName.split(" ")[0]}</span>
+              {isAdminUser ? (
+                <>
+                  <NavLink to="/admin" end className={linkClass} onClick={closeMenu}>
+                    Dashboard
+                  </NavLink>
+                  <NavLink to="/admin/courses" className={linkClass} onClick={closeMenu}>
+                    Manage Courses
+                  </NavLink>
+                  <NavLink to="/admin/users" className={linkClass} onClick={closeMenu}>
+                    Users
+                  </NavLink>
+                </>
+              ) : (
+                <>
+                  <NavLink to="/my-courses" className={linkClass} onClick={closeMenu}>
+                    My Courses
+                    {enrolledCount > 0 && <span className="nav-badge">{enrolledCount}</span>}
+                  </NavLink>
+                </>
               )}
+
+              <NavLink
+                to="/profile"
+                className={({ isActive }) =>
+                  isActive ? "nav-profile active" : "nav-profile"
+                }
+                onClick={closeMenu}
+              >
+                <span className="nav-avatar">
+                  {(userName || "U").charAt(0).toUpperCase()}
+                </span>
+                {isAdminUser ? "Admin" : userName ? userName.split(" ")[0] : "Profile"}
+              </NavLink>
 
               <Link to="/logout" className="nav-btn nav-logout" onClick={closeMenu}>
                 Logout
@@ -93,4 +121,3 @@ function Navbar() {
 }
 
 export default Navbar;
-
